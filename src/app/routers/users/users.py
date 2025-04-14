@@ -89,7 +89,8 @@ def update_avatar_user(
     db: Session = Depends(get_db),
     upload_service: UploadFileService = Depends(UploadFileService),
     user_service: UserService = Depends(UserService),
-    current_user: User = Depends(JWTManager().get_current_user),
+    current_user: User = Depends(JWTManager().get_current_admin_user),
+    # current_user: User = Depends(get_current_admin_user)
 ):
     avatar_url = upload_service.upload_file(file, current_user.username)
     updated_user = user_service.update_avatar_url(db, current_user.email, avatar_url)

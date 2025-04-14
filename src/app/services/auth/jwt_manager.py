@@ -10,6 +10,7 @@ from db.database import get_db
 from app.services.user.user_service import UserService
 from fastapi.security import OAuth2PasswordBearer
 from app.settings import settings
+from db.models.user import User, UserRole
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
@@ -67,6 +68,24 @@ class JWTManager:
         if user is None:
             raise credentials_exception
         return user
+
+    def get_current_admin_user(
+        self,
+        token: str = Depends(oauth2_scheme),
+        db: Session = Depends(get_db),
+        user_service: UserService = Depends(UserService),
+    ):
+        # Call get_current_user explicitly
+        current_user = self.get_current_user(
+            token=token, db=db, user_service=user_service
+        )
+
+        if current_user.role != UserRole.admin.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return current_user
 
     def create_email_token(self, data: dict):
         to_encode = data.copy()

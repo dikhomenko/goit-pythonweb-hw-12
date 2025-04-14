@@ -1,6 +1,12 @@
 from db.models.base import Base
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, DateTime, Integer, String, Boolean, func
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, func, Enum as SqlEnum
+from enum import Enum
+
+
+class UserRole(str, Enum):  # Define the UserRole enum
+    user = "user"
+    admin = "admin"
 
 
 class User(Base):
@@ -13,6 +19,9 @@ class User(Base):
     avatar = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=func.now())
     confirmed = Column(Boolean, default=False)
+    role = Column(
+        SqlEnum(UserRole, name="userrole"), default=UserRole.user, nullable=False
+    )  # Use SqlEnum here
 
     # Relationship with Contact
     contacts = relationship(

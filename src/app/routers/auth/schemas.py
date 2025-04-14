@@ -1,10 +1,16 @@
 from pydantic import BaseModel, EmailStr
+from db.models.user import UserRole
 
 
 class UserModel(BaseModel):
     username: str
     password: str
     email: EmailStr
+    role: UserRole
+
+
+class Config:
+    use_enum_values = True
 
 
 class UserResponse(BaseModel):
