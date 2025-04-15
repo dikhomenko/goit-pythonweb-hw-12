@@ -29,7 +29,8 @@ dependencies = [
     "pytest (>=8.3.5,<9.0.0)",
     "pytest-cov (>=6.1.1,<7.0.0)",
     "redis (>=5.2.1,<6.0.0)",
-    "redis-lru (>=0.1.2,<0.2.0)"
+    "redis-lru (>=0.1.2,<0.2.0)",
+    "sphinx (<8.0)"
 ]
 
 [build-system]

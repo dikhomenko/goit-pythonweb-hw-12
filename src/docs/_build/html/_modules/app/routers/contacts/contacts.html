@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>app.routers.contacts.contacts &#8212; GoIT-pythonweb-hm-12 1.12 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/nature.css?v=0f882399" />
+    <script src="../../../../_static/documentation_options.js?v=2d52a127"></script>
+    <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">GoIT-pythonweb-hm-12 1.12 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">app.routers.contacts.contacts</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.routers.contacts.contacts</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.routers.contacts</span><span class="w"> </span><span class="kn">import</span> <span class="n">schemas</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.services.contacts.contact_service</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContactService</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.services.user.user_service</span><span class="w"> </span><span class="kn">import</span> <span class="n">UserService</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.services.auth.jwt_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">JWTManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db.models.user</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/api/contacts&quot;</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;contacts&quot;</span><span class="p">],</span>
+    <span class="n">responses</span><span class="o">=</span><span class="p">{</span><span class="mi">404</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Not found&quot;</span><span class="p">}},</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="create_contact">
+<a class="viewcode-back" href="../../../../index.html#app.routers.contacts.contacts.create_contact">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">schemas</span><span class="o">.</span><span class="n">Contact</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_contact</span><span class="p">(</span>
+    <span class="n">contact</span><span class="p">:</span> <span class="n">schemas</span><span class="o">.</span><span class="n">ContactCreate</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">),</span>  <span class="c1"># Inject current user</span>
+    <span class="n">contact_service</span><span class="p">:</span> <span class="n">ContactService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">ContactService</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a new contact for the current user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        contact (schemas.ContactCreate): The contact data to create.</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        current_user (User): The currently authenticated user.</span>
+<span class="sd">        contact_service (ContactService): The contact service for interacting with the database.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        schemas.Contact: The created contact.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">contact_service</span><span class="o">.</span><span class="n">create_contact</span><span class="p">(</span>
+        <span class="n">db</span><span class="o">=</span><span class="n">db</span><span class="p">,</span> <span class="n">contact_data</span><span class="o">=</span><span class="n">contact</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_contacts">
+<a class="viewcode-back" href="../../../../index.html#app.routers.contacts.contacts.read_contacts">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">schemas</span><span class="o">.</span><span class="n">Contact</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_contacts</span><span class="p">(</span>
+    <span class="n">skip</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">),</span>  <span class="c1"># Inject current user</span>
+    <span class="n">contact_service</span><span class="p">:</span> <span class="n">ContactService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">ContactService</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve a list of contacts for the current user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        skip (int): The number of records to skip (default: 0).</span>
+<span class="sd">        limit (int): The maximum number of records to return (default: 10).</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        current_user (User): The currently authenticated user.</span>
+<span class="sd">        contact_service (ContactService): The contact service for interacting with the database.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[schemas.Contact]: A list of contacts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">contacts</span> <span class="o">=</span> <span class="n">contact_service</span><span class="o">.</span><span class="n">get_contacts</span><span class="p">(</span>
+        <span class="n">db</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="n">skip</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">contacts</span></div>
+
+
+
+<div class="viewcode-block" id="read_contact">
+<a class="viewcode-back" href="../../../../index.html#app.routers.contacts.contacts.read_contact">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{contact_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">schemas</span><span class="o">.</span><span class="n">Contact</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_contact</span><span class="p">(</span>
+    <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">),</span>  <span class="c1"># Inject current user</span>
+    <span class="n">contact_service</span><span class="p">:</span> <span class="n">ContactService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">ContactService</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve a specific contact by ID for the current user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        contact_id (int): The ID of the contact to retrieve.</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        current_user (User): The currently authenticated user.</span>
+<span class="sd">        contact_service (ContactService): The contact service for interacting with the database.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        schemas.Contact: The requested contact.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: If the contact is not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">db_contact</span> <span class="o">=</span> <span class="n">contact_service</span><span class="o">.</span><span class="n">get_contact</span><span class="p">(</span>
+        <span class="n">db</span><span class="p">,</span> <span class="n">contact_id</span><span class="o">=</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">db_contact</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Contact not found&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db_contact</span></div>
+
+
+
+<div class="viewcode-block" id="update_contact">
+<a class="viewcode-back" href="../../../../index.html#app.routers.contacts.contacts.update_contact">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{contact_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">schemas</span><span class="o">.</span><span class="n">Contact</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_contact</span><span class="p">(</span>
+    <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">contact</span><span class="p">:</span> <span class="n">schemas</span><span class="o">.</span><span class="n">ContactUpdate</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">),</span>  <span class="c1"># Inject current user</span>
+    <span class="n">contact_service</span><span class="p">:</span> <span class="n">ContactService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">ContactService</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update a specific contact by ID for the current user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        contact_id (int): The ID of the contact to update.</span>
+<span class="sd">        contact (schemas.ContactUpdate): The updated contact data.</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        current_user (User): The currently authenticated user.</span>
+<span class="sd">        contact_service (ContactService): The contact service for interacting with the database.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        schemas.Contact: The updated contact.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: If the contact is not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">db_contact</span> <span class="o">=</span> <span class="n">contact_service</span><span class="o">.</span><span class="n">update_contact</span><span class="p">(</span>
+        <span class="n">db</span><span class="p">,</span> <span class="n">contact_id</span><span class="o">=</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">contact_data</span><span class="o">=</span><span class="n">contact</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">db_contact</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Contact not found&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db_contact</span></div>
+
+
+
+<div class="viewcode-block" id="delete_contact">
+<a class="viewcode-back" href="../../../../index.html#app.routers.contacts.contacts.delete_contact">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{contact_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">schemas</span><span class="o">.</span><span class="n">Contact</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_contact</span><span class="p">(</span>
+    <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">),</span>  <span class="c1"># Inject current user</span>
+    <span class="n">contact_service</span><span class="p">:</span> <span class="n">ContactService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">ContactService</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Delete a specific contact by ID for the current user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        contact_id (int): The ID of the contact to delete.</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        current_user (User): The currently authenticated user.</span>
+<span class="sd">        contact_service (ContactService): The contact service for interacting with the database.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        schemas.Contact: The deleted contact.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: If the contact is not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">db_contact</span> <span class="o">=</span> <span class="n">contact_service</span><span class="o">.</span><span class="n">delete_contact</span><span class="p">(</span>
+        <span class="n">db</span><span class="p">,</span> <span class="n">contact_id</span><span class="o">=</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">db_contact</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Contact not found&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db_contact</span></div>
+
+
+
+<div class="viewcode-block" id="search_contacts">
+<a class="viewcode-back" href="../../../../index.html#app.routers.contacts.contacts.search_contacts">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/search/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">schemas</span><span class="o">.</span><span class="n">Contact</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">search_contacts</span><span class="p">(</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lastname</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">),</span>  <span class="c1"># Inject current user</span>
+    <span class="n">contact_service</span><span class="p">:</span> <span class="n">ContactService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">ContactService</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Search for contacts by name, lastname, or email for the current user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name (Optional[str]): The first name to search for.</span>
+<span class="sd">        lastname (Optional[str]): The last name to search for.</span>
+<span class="sd">        email (Optional[str]): The email to search for.</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        current_user (User): The currently authenticated user.</span>
+<span class="sd">        contact_service (ContactService): The contact service for interacting with the database.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[schemas.Contact]: A list of matching contacts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">contacts</span> <span class="o">=</span> <span class="n">contact_service</span><span class="o">.</span><span class="n">get_contact_by_name_lastname_email</span><span class="p">(</span>
+        <span class="n">db</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">lastname</span><span class="o">=</span><span class="n">lastname</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="n">email</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">contacts</span></div>
+
+
+
+<div class="viewcode-block" id="contacts_with_upcoming_birthdays">
+<a class="viewcode-back" href="../../../../index.html#app.routers.contacts.contacts.contacts_with_upcoming_birthdays">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/birthdays/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">schemas</span><span class="o">.</span><span class="n">Contact</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">contacts_with_upcoming_birthdays</span><span class="p">(</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">),</span>  <span class="c1"># Inject current user</span>
+    <span class="n">contact_service</span><span class="p">:</span> <span class="n">ContactService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">ContactService</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve contacts with upcoming birthdays for the current user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        current_user (User): The currently authenticated user.</span>
+<span class="sd">        contact_service (ContactService): The contact service for interacting with the database.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[schemas.Contact]: A list of contacts with upcoming birthdays.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">contacts</span> <span class="o">=</span> <span class="n">contact_service</span><span class="o">.</span><span class="n">get_contacts_with_upcoming_birthdays</span><span class="p">(</span>
+        <span class="n">db</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">contacts</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">GoIT-pythonweb-hm-12 1.12 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">app.routers.contacts.contacts</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, Dina_Khomenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    </div>
+  </body>
+</html>

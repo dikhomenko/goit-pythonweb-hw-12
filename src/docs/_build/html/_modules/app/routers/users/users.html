@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>app.routers.users.users &#8212; GoIT-pythonweb-hm-12 1.12 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/nature.css?v=0f882399" />
+    <script src="../../../../_static/documentation_options.js?v=2d52a127"></script>
+    <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">GoIT-pythonweb-hm-12 1.12 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">app.routers.users.users</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app.routers.users.users</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">APIRouter</span><span class="p">,</span>
+    <span class="n">Depends</span><span class="p">,</span>
+    <span class="n">Request</span><span class="p">,</span>
+    <span class="n">HTTPException</span><span class="p">,</span>
+    <span class="n">status</span><span class="p">,</span>
+    <span class="n">BackgroundTasks</span><span class="p">,</span>
+    <span class="c1"># UploadFile,</span>
+    <span class="n">File</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">UploadFile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.services.user.user_service</span><span class="w"> </span><span class="kn">import</span> <span class="n">UserService</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.services.file_services.upload_service</span><span class="w"> </span><span class="kn">import</span> <span class="n">UploadFileService</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.routers.users</span><span class="w"> </span><span class="kn">import</span> <span class="n">schemas</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.helpers.api.rate_limiter</span><span class="w"> </span><span class="kn">import</span> <span class="n">limiter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi_mail</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectionConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.routers.users.schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">RequestEmail</span><span class="p">,</span> <span class="n">EmailSchema</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.helpers.email_sender.email</span><span class="w"> </span><span class="kn">import</span> <span class="n">send_email</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app.services.auth.jwt_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">JWTManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db.models.user</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
+
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/api/users&quot;</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;users&quot;</span><span class="p">],</span>
+    <span class="n">responses</span><span class="o">=</span><span class="p">{</span><span class="mi">404</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Not found&quot;</span><span class="p">}},</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="me">
+<a class="viewcode-back" href="../../../../index.html#app.routers.users.users.me">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="s2">&quot;/me&quot;</span><span class="p">,</span>
+    <span class="n">response_model</span><span class="o">=</span><span class="n">schemas</span><span class="o">.</span><span class="n">UserResponse</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;No more than 5 requests per minute&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@limiter</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="s2">&quot;5/minute&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">me</span><span class="p">(</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">schemas</span><span class="o">.</span><span class="n">UserResponse</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_user</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve the current authenticated user&#39;s details.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        request (Request): The HTTP request object.</span>
+<span class="sd">        current_user (schemas.UserResponse): The currently authenticated user.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        schemas.UserResponse: The details of the current user.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">current_user</span></div>
+
+
+
+<div class="viewcode-block" id="confirmed_email">
+<a class="viewcode-back" href="../../../../index.html#app.routers.users.users.confirmed_email">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/confirmed_email/</span><span class="si">{token}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">confirmed_email</span><span class="p">(</span>
+    <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">user_service</span><span class="p">:</span> <span class="n">UserService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">UserService</span><span class="p">),</span>
+    <span class="n">jwt_manager</span><span class="p">:</span> <span class="n">JWTManager</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Confirm a user&#39;s email using a token.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        token (str): The email confirmation token.</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        user_service (UserService): The user service for interacting with the database.</span>
+<span class="sd">        jwt_manager (JWTManager): The JWT manager for validating the token.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: A success message if the email is confirmed.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: If the token is invalid or the user is not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">jwt_manager</span><span class="o">.</span><span class="n">get_email_from_token</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">user_service</span><span class="o">.</span><span class="n">get_user_by_email</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Verification error&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">confirmed</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;You have already confirmed your email&quot;</span><span class="p">}</span>
+    <span class="n">user_service</span><span class="o">.</span><span class="n">confirmed_email</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">email</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Email confirmed successfully&quot;</span><span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="request_email">
+<a class="viewcode-back" href="../../../../index.html#app.routers.users.users.request_email">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/request_email&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">request_email</span><span class="p">(</span>
+    <span class="n">body</span><span class="p">:</span> <span class="n">RequestEmail</span><span class="p">,</span>
+    <span class="n">background_tasks</span><span class="p">:</span> <span class="n">BackgroundTasks</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">user_service</span><span class="p">:</span> <span class="n">UserService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">UserService</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Request an email confirmation for a user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        body (RequestEmail): The email address of the user requesting confirmation.</span>
+<span class="sd">        background_tasks (BackgroundTasks): Background tasks for sending the confirmation email.</span>
+<span class="sd">        request (Request): The HTTP request object.</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        user_service (UserService): The user service for interacting with the database.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: A success message indicating the confirmation email was sent.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">jwt_manager</span> <span class="o">=</span> <span class="n">JWTManager</span><span class="p">()</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">user_service</span><span class="o">.</span><span class="n">get_user_by_email</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">confirmed</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Your email is already confirmed&quot;</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">user</span><span class="p">:</span>
+        <span class="n">background_tasks</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span>
+            <span class="n">send_email</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">base_url</span><span class="p">,</span> <span class="n">jwt_manager</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Check your email for confirmation&quot;</span><span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="update_avatar_user">
+<a class="viewcode-back" href="../../../../index.html#app.routers.users.users.update_avatar_user">[docs]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span><span class="s2">&quot;/avatar&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">schemas</span><span class="o">.</span><span class="n">UserResponse</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_avatar_user</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="n">UploadFile</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">upload_service</span><span class="p">:</span> <span class="n">UploadFileService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">UploadFileService</span><span class="p">),</span>
+    <span class="n">user_service</span><span class="p">:</span> <span class="n">UserService</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">UserService</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">JWTManager</span><span class="p">()</span><span class="o">.</span><span class="n">get_current_admin_user</span><span class="p">),</span>
+    <span class="c1"># current_user: User = Depends(get_current_admin_user)</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the avatar for the current user.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file (UploadFile): The uploaded avatar file.</span>
+<span class="sd">        db (Session): The database session.</span>
+<span class="sd">        upload_service (UploadFileService): The service for handling file uploads.</span>
+<span class="sd">        user_service (UserService): The user service for interacting with the database.</span>
+<span class="sd">        current_user (User): The currently authenticated admin user.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        schemas.UserResponse: The updated user with the new avatar URL.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: If the file upload or database update fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">avatar_url</span> <span class="o">=</span> <span class="n">upload_service</span><span class="o">.</span><span class="n">upload_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">current_user</span><span class="o">.</span><span class="n">username</span><span class="p">)</span>
+    <span class="n">updated_user</span> <span class="o">=</span> <span class="n">user_service</span><span class="o">.</span><span class="n">update_avatar_url</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">current_user</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="n">avatar_url</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">updated_user</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">GoIT-pythonweb-hm-12 1.12 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">app.routers.users.users</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, Dina_Khomenko.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    </div>
+  </body>
+</html>

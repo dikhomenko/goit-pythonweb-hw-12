@@ -27,7 +27,7 @@ conf = ConnectionConfig(
 async def send_email(
     email: EmailStr, username: str, host: str, jwt_manager: JWTManager
 ):
-        """
+    """
     Send an email confirmation link to the user.
 
     Args:
