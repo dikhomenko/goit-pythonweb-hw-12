@@ -22,6 +22,18 @@ def create_contact(
     current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
     contact_service: ContactService = Depends(ContactService),
 ):
+    """
+    Create a new contact for the current user.
+
+    Args:
+        contact (schemas.ContactCreate): The contact data to create.
+        db (Session): The database session.
+        current_user (User): The currently authenticated user.
+        contact_service (ContactService): The contact service for interacting with the database.
+
+    Returns:
+        schemas.Contact: The created contact.
+    """
     return contact_service.create_contact(
         db=db, contact_data=contact, user_id=current_user.id
     )
@@ -35,6 +47,19 @@ def read_contacts(
     current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
     contact_service: ContactService = Depends(ContactService),
 ):
+    """
+    Retrieve a list of contacts for the current user.
+
+    Args:
+        skip (int): The number of records to skip (default: 0).
+        limit (int): The maximum number of records to return (default: 10).
+        db (Session): The database session.
+        current_user (User): The currently authenticated user.
+        contact_service (ContactService): The contact service for interacting with the database.
+
+    Returns:
+        List[schemas.Contact]: A list of contacts.
+    """
     contacts = contact_service.get_contacts(
         db, user_id=current_user.id, skip=skip, limit=limit
     )
@@ -48,6 +73,21 @@ def read_contact(
     current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
     contact_service: ContactService = Depends(ContactService),
 ):
+    """
+    Retrieve a specific contact by ID for the current user.
+
+    Args:
+        contact_id (int): The ID of the contact to retrieve.
+        db (Session): The database session.
+        current_user (User): The currently authenticated user.
+        contact_service (ContactService): The contact service for interacting with the database.
+
+    Returns:
+        schemas.Contact: The requested contact.
+
+    Raises:
+        HTTPException: If the contact is not found.
+    """
     db_contact = contact_service.get_contact(
         db, contact_id=contact_id, user_id=current_user.id
     )
@@ -64,6 +104,22 @@ def update_contact(
     current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
     contact_service: ContactService = Depends(ContactService),
 ):
+    """
+    Update a specific contact by ID for the current user.
+
+    Args:
+        contact_id (int): The ID of the contact to update.
+        contact (schemas.ContactUpdate): The updated contact data.
+        db (Session): The database session.
+        current_user (User): The currently authenticated user.
+        contact_service (ContactService): The contact service for interacting with the database.
+
+    Returns:
+        schemas.Contact: The updated contact.
+
+    Raises:
+        HTTPException: If the contact is not found.
+    """
     db_contact = contact_service.update_contact(
         db, contact_id=contact_id, contact_data=contact, user_id=current_user.id
     )
@@ -79,6 +135,21 @@ def delete_contact(
     current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
     contact_service: ContactService = Depends(ContactService),
 ):
+    """
+    Delete a specific contact by ID for the current user.
+
+    Args:
+        contact_id (int): The ID of the contact to delete.
+        db (Session): The database session.
+        current_user (User): The currently authenticated user.
+        contact_service (ContactService): The contact service for interacting with the database.
+
+    Returns:
+        schemas.Contact: The deleted contact.
+
+    Raises:
+        HTTPException: If the contact is not found.
+    """
     db_contact = contact_service.delete_contact(
         db, contact_id=contact_id, user_id=current_user.id
     )
@@ -96,6 +167,20 @@ def search_contacts(
     current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
     contact_service: ContactService = Depends(ContactService),
 ):
+    """
+    Search for contacts by name, lastname, or email for the current user.
+
+    Args:
+        name (Optional[str]): The first name to search for.
+        lastname (Optional[str]): The last name to search for.
+        email (Optional[str]): The email to search for.
+        db (Session): The database session.
+        current_user (User): The currently authenticated user.
+        contact_service (ContactService): The contact service for interacting with the database.
+
+    Returns:
+        List[schemas.Contact]: A list of matching contacts.
+    """
     contacts = contact_service.get_contact_by_name_lastname_email(
         db, user_id=current_user.id, name=name, lastname=lastname, email=email
     )
@@ -108,6 +193,17 @@ def contacts_with_upcoming_birthdays(
     current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
     contact_service: ContactService = Depends(ContactService),
 ):
+    """
+    Retrieve contacts with upcoming birthdays for the current user.
+
+    Args:
+        db (Session): The database session.
+        current_user (User): The currently authenticated user.
+        contact_service (ContactService): The contact service for interacting with the database.
+
+    Returns:
+        List[schemas.Contact]: A list of contacts with upcoming birthdays.
+    """
     contacts = contact_service.get_contacts_with_upcoming_birthdays(
         db, user_id=current_user.id
     )

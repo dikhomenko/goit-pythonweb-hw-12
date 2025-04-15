@@ -41,6 +41,16 @@ def me(
     request: Request,
     current_user: schemas.UserResponse = Depends(JWTManager().get_current_user),
 ):
+    """
+    Retrieve the current authenticated user's details.
+
+    Args:
+        request (Request): The HTTP request object.
+        current_user (schemas.UserResponse): The currently authenticated user.
+
+    Returns:
+        schemas.UserResponse: The details of the current user.
+    """
     return current_user
 
 
@@ -51,6 +61,21 @@ def confirmed_email(
     user_service: UserService = Depends(UserService),
     jwt_manager: JWTManager = Depends(JWTManager),
 ):
+    """
+    Confirm a user's email using a token.
+
+    Args:
+        token (str): The email confirmation token.
+        db (Session): The database session.
+        user_service (UserService): The user service for interacting with the database.
+        jwt_manager (JWTManager): The JWT manager for validating the token.
+
+    Returns:
+        dict: A success message if the email is confirmed.
+
+    Raises:
+        HTTPException: If the token is invalid or the user is not found.
+    """
     email = jwt_manager.get_email_from_token(token)
     user = user_service.get_user_by_email(db, email)
     if user is None:
@@ -71,6 +96,19 @@ def request_email(
     db: Session = Depends(get_db),
     user_service: UserService = Depends(UserService),
 ):
+    """
+    Request an email confirmation for a user.
+
+    Args:
+        body (RequestEmail): The email address of the user requesting confirmation.
+        background_tasks (BackgroundTasks): Background tasks for sending the confirmation email.
+        request (Request): The HTTP request object.
+        db (Session): The database session.
+        user_service (UserService): The user service for interacting with the database.
+
+    Returns:
+        dict: A success message indicating the confirmation email was sent.
+    """
     jwt_manager = JWTManager()
     user = user_service.get_user_by_email(db, body.email)
 
@@ -92,6 +130,22 @@ def update_avatar_user(
     current_user: User = Depends(JWTManager().get_current_admin_user),
     # current_user: User = Depends(get_current_admin_user)
 ):
+    """
+    Update the avatar for the current user.
+
+    Args:
+        file (UploadFile): The uploaded avatar file.
+        db (Session): The database session.
+        upload_service (UploadFileService): The service for handling file uploads.
+        user_service (UserService): The user service for interacting with the database.
+        current_user (User): The currently authenticated admin user.
+
+    Returns:
+        schemas.UserResponse: The updated user with the new avatar URL.
+
+    Raises:
+        HTTPException: If the file upload or database update fails.
+    """
     avatar_url = upload_service.upload_file(file, current_user.username)
     updated_user = user_service.update_avatar_url(db, current_user.email, avatar_url)
     return updated_user

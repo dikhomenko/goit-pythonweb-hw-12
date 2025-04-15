@@ -6,6 +6,10 @@ from db.models.contact import Contact
 
 
 class ContactService:
+    """
+    Service layer for contact-related operations.
+    """
+
     def __init__(self, contacts_repository: ContactsRepository = Depends()):
         self.contacts_repository = contacts_repository
 

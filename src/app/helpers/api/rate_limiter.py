@@ -9,6 +9,16 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded):
+    """
+    Handle rate limit exceptions by returning a 429 Too Many Requests response.
+
+    Args:
+        request (Request): The HTTP request object.
+        exc (RateLimitExceeded): The exception raised when the rate limit is exceeded.
+
+    Returns:
+        JSONResponse: A JSON response with an error message and 429 status code.
+    """
     print(f"Client IP: {request.client.host}")
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,

@@ -4,6 +4,10 @@ from app.repositories.users.users import UsersRepository
 
 
 class UserService:
+    """
+    Service layer for user-related operations.
+    """
+
     def __init__(self, users_repository: UsersRepository = Depends()):
         self.users_repository = users_repository
 

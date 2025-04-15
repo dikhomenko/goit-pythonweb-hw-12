@@ -27,6 +27,18 @@ conf = ConnectionConfig(
 async def send_email(
     email: EmailStr, username: str, host: str, jwt_manager: JWTManager
 ):
+        """
+    Send an email confirmation link to the user.
+
+    Args:
+        email (EmailStr): The recipient's email address.
+        username (str): The username of the recipient.
+        host (str): The base URL of the application.
+        jwt_manager (JWTManager): The JWT manager for generating the email token.
+
+    Raises:
+        Exception: If the email fails to send.
+    """
     try:
         # Use JWTManager to create the email token
         token_verification = jwt_manager.create_email_token({"sub": email})
@@ -49,6 +61,17 @@ async def send_email(
 
 
 async def send_password_reset_email(email: EmailStr, host: str, token: str):
+    """
+    Send a password reset email to the user.
+
+    Args:
+        email (EmailStr): The recipient's email address.
+        host (str): The base URL of the application.
+        token (str): The password reset token.
+
+    Raises:
+        Exception: If the email fails to send.
+    """
     try:
         message = MessageSchema(
             subject="Password Reset Request for Your Account",

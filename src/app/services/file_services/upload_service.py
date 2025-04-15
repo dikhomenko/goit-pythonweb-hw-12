@@ -4,6 +4,10 @@ from app.settings import settings
 
 
 class UploadFileService:
+    """
+    Service for handling file uploads using Cloudinary.
+    """
+
     def __init__(self):
         # Initialize Cloudinary configuration here, to make it easier
         self.cloud_name = settings.CLOUDINARY_NAME
@@ -18,6 +22,16 @@ class UploadFileService:
 
     @staticmethod
     def upload_file(file, username) -> str:
+        """
+        Upload a file to Cloudinary and return the URL.
+
+        Args:
+            file: The file to upload.
+            username: The username to associate with the uploaded file.
+
+        Returns:
+            str: The URL of the uploaded file.
+        """
         public_id = f"RestApp/{username}"
         r = cloudinary.uploader.upload(file.file, public_id=public_id, overwrite=True)
         src_url = cloudinary.CloudinaryImage(public_id).build_url(

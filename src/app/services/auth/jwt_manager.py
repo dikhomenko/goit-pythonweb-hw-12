@@ -26,6 +26,10 @@ cache = RedisLRU(redis_client)
 
 
 class Hash:
+    """
+    Utility class for hashing and verifying passwords.
+    """
+
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def verify_password(self, plain_password, hashed_password):
@@ -39,10 +43,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=settings.OAUTH2_SCHEME)
 
 
 class JWTManager:
+    """
+    Manager class for handling JWT creation and validation.
+    """
+
     def __init__(self):
         pass
 
     def create_access_token(self, data: dict, expires_delta: Optional[float] = None):
+        """
+        Create an access token with optional expiration time.
+        """
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.now(UTC) + timedelta(seconds=expires_delta)
@@ -59,6 +70,9 @@ class JWTManager:
         db: Session = Depends(get_db),
         user_service: UserService = Depends(UserService),  # Resolve dependency here
     ):
+        """
+        Retrieve the current authenticated user from the token.
+        """
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -84,6 +98,9 @@ class JWTManager:
         db: Session = Depends(get_db),
         user_service: UserService = Depends(UserService),
     ):
+        """
+        Retrieve the current authenticated admin user from the token.
+        """
         # Call get_current_user explicitly
         current_user = self.get_current_user(
             token=token, db=db, user_service=user_service
@@ -97,6 +114,9 @@ class JWTManager:
         return current_user
 
     def create_email_token(self, data: dict):
+        """
+        Create a token for email confirmation.
+        """
         to_encode = data.copy()
         expire = datetime.now(UTC) + timedelta(days=7)
         to_encode.update({"iat": datetime.now(UTC), "exp": expire})
@@ -104,6 +124,9 @@ class JWTManager:
         return token
 
     def get_email_from_token(self, token: str):
+        """
+        Extract the email from an email confirmation token.
+        """
         try:
             payload = jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
@@ -117,14 +140,18 @@ class JWTManager:
             )
 
     def create_password_reset_token(self, email: str):
-        """Generate a password reset token."""
+        """
+        Generate a password reset token.
+        """
         to_encode = {"sub": email, "iat": datetime.now(UTC)}
         expire = datetime.now(UTC) + timedelta(hours=1)  # Token valid for 1 hour
         to_encode.update({"exp": expire})
         return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
     def validate_password_reset_token(self, token: str):
-        """Validate the password reset token and extract the email."""
+        """
+        Validate the password reset token and extract the email.
+        """
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             return payload.get("sub")  # Return the email
