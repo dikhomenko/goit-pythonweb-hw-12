@@ -1,5 +1,5 @@
 [project]
-name = "goit-pythonweb-hw-10"
+name = "goit-pythonweb-hw-12"
 version = "0.1.0"
 description = ""
 authors = [
@@ -27,7 +27,9 @@ dependencies = [
     "fastapi-mail (>=1.4.2,<2.0.0)",
     "cloudinary (>=1.43.0,<2.0.0)",
     "pytest (>=8.3.5,<9.0.0)",
-    "pytest-cov (>=6.1.1,<7.0.0)"
+    "pytest-cov (>=6.1.1,<7.0.0)",
+    "redis (>=5.2.1,<6.0.0)",
+    "redis-lru (>=0.1.2,<0.2.0)"
 ]
 
 [build-system]

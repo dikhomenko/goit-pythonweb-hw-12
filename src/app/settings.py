@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
 
+    # Redis configuration for caching
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_DB: int
+
     class Config:
         env_file = str(Path(__file__).parent.parent / ".env")
 

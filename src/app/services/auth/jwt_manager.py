@@ -11,10 +11,18 @@ from app.services.user.user_service import UserService
 from fastapi.security import OAuth2PasswordBearer
 from app.settings import settings
 from db.models.user import User, UserRole
+import redis
+from redis_lru import RedisLRU
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 JWT_EXPIRATION_SECONDS = settings.JWT_EXPIRATION_SECONDS
+
+# Initialize Redis connection
+redis_client = redis.StrictRedis(
+    host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB
+)
+cache = RedisLRU(redis_client)
 
 
 class Hash:
@@ -44,6 +52,7 @@ class JWTManager:
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
 
+    @cache
     def get_current_user(
         self,
         token: str = Depends(oauth2_scheme),
