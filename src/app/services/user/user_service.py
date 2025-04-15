@@ -24,3 +24,6 @@ class UserService:
 
     def update_avatar_url(self, db: Session, email: str, url: str):
         return self.users_repository.update_avatar_url(db, email, url)
+
+    def update_password(self, db: Session, email: str, new_password: str):
+        return self.users_repository.update_password(db, email, new_password)

@@ -115,3 +115,21 @@ class JWTManager:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Wrong token for email confirmation",
             )
+
+    def create_password_reset_token(self, email: str):
+        """Generate a password reset token."""
+        to_encode = {"sub": email, "iat": datetime.now(UTC)}
+        expire = datetime.now(UTC) + timedelta(hours=1)  # Token valid for 1 hour
+        to_encode.update({"exp": expire})
+        return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+    def validate_password_reset_token(self, token: str):
+        """Validate the password reset token and extract the email."""
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            return payload.get("sub")  # Return the email
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired password reset token",
+            )

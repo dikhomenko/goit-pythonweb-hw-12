@@ -35,3 +35,11 @@ class UsersRepository:
         db.commit()
         db.refresh(user)
         return user
+
+    def update_password(self, db: Session, email: str, new_password: str):
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.password = new_password
+            db.commit()
+            db.refresh(user)
+        return user

@@ -25,3 +25,12 @@ class UserResponse(BaseModel):
 class TokenModel(BaseModel):
     access_token: str
     token_type: str
+
+
+class RequestEmail(BaseModel):
+    email: EmailStr
+
+
+class ResetPassword(BaseModel):
+    token: str
+    new_password: str
