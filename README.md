@@ -64,5 +64,6 @@ cd src
 
 .\venv\Scripts\activate
 
+pytest -v tests/integration/routers/test_users_router.py
 pytest -v tests/integration/routers/test_contacts_router.py
 pytest -v tests/integration/routers/test_contacts_router.py::test_create_contact --pdb

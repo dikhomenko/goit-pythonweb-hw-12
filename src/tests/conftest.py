@@ -16,20 +16,20 @@ from jose import jwt
 from db.models.user import UserRole
 from app.dependencies.auth import jwt_manager
 
-# Configure logging
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Use a file-based SQLite database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
-# Create a single shared connection for the file-based database
+# Create a single shared connection
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
 )
 
-# Create a session factory bound to the shared connection
+# Create a session
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 test_user = {
@@ -54,7 +54,7 @@ def get_mock_admin_user():
 
 def init_models():
     logger.debug("Initializing database schema...")
-    # Create tables in the shared connection
+    # Create tables
     with engine.begin() as conn:
         logger.debug("Dropping all tables...")
         Base.metadata.drop_all(bind=conn)
@@ -80,10 +80,12 @@ def init_models():
 @pytest.fixture(scope="module", autouse=True)
 def init_models_wrap():
     logger.debug("Calling init_models_wrap fixture...")
-    # Ensure the database schema is initialized before tests
+    # Ensure the database schema is initialized before the tests
     init_models()
     yield
-    # Clean up the database file after tests
+    # Clean up the database file after the tests
+    logger.debug("Disposing of the database engine...")
+    engine.dispose()
     if os.path.exists("./test.db"):
         os.remove("./test.db")
         logger.debug("Test database file removed.")
@@ -100,12 +102,12 @@ def client():
 
     app.dependency_overrides[get_db] = override_get_db
 
-    # ✅ Override the exact callable used in the route
+    # Override the exact callable used in the route
     app.dependency_overrides[jwt_manager.get_current_admin_user] = get_mock_admin_user
 
     yield TestClient(app)
 
-    # Optional: clean up after tests
+    # Clean up after tests
     app.dependency_overrides.clear()
 
 

@@ -6,6 +6,7 @@ from db.database import get_db
 from app.services.contacts.contact_service import ContactService
 from app.services.user.user_service import UserService
 from app.services.auth.jwt_manager import JWTManager
+from app.dependencies.auth import jwt_manager
 from db.models.user import User
 
 router = APIRouter(
@@ -19,7 +20,7 @@ router = APIRouter(
 def create_contact(
     contact: schemas.ContactCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
+    current_user: User = Depends(jwt_manager.get_current_user),
     contact_service: ContactService = Depends(ContactService),
 ):
     """
@@ -44,7 +45,7 @@ def read_contacts(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
-    current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
+    current_user: User = Depends(jwt_manager.get_current_user),
     contact_service: ContactService = Depends(ContactService),
 ):
     """
@@ -70,7 +71,7 @@ def read_contacts(
 def read_contact(
     contact_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
+    current_user: User = Depends(jwt_manager.get_current_user),
     contact_service: ContactService = Depends(ContactService),
 ):
     """
@@ -101,7 +102,7 @@ def update_contact(
     contact_id: int,
     contact: schemas.ContactUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
+    current_user: User = Depends(jwt_manager.get_current_user),
     contact_service: ContactService = Depends(ContactService),
 ):
     """
@@ -132,7 +133,7 @@ def update_contact(
 def delete_contact(
     contact_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
+    current_user: User = Depends(jwt_manager.get_current_user),
     contact_service: ContactService = Depends(ContactService),
 ):
     """
@@ -164,7 +165,7 @@ def search_contacts(
     lastname: Optional[str] = None,
     email: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
+    current_user: User = Depends(jwt_manager.get_current_user),
     contact_service: ContactService = Depends(ContactService),
 ):
     """
@@ -190,7 +191,7 @@ def search_contacts(
 @router.get("/birthdays/", response_model=List[schemas.Contact])
 def contacts_with_upcoming_birthdays(
     db: Session = Depends(get_db),
-    current_user: User = Depends(JWTManager().get_current_user),  # Inject current user
+    current_user: User = Depends(jwt_manager.get_current_user),
     contact_service: ContactService = Depends(ContactService),
 ):
     """
