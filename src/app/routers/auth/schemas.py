@@ -6,7 +6,7 @@ class UserModel(BaseModel):
     username: str
     password: str
     email: EmailStr
-    role: UserRole
+    role: UserRole = UserRole.user.value
 
 
 class Config:

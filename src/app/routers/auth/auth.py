@@ -16,6 +16,7 @@ from app.services.user.user_service import UserService
 from app.helpers.email_sender.email import send_email, send_password_reset_email
 from app.routers.auth.schemas import UserResponse
 from app.services.auth.jwt_manager import JWTManager
+from app.dependencies.auth import jwt_manager
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from pathlib import Path
@@ -58,7 +59,6 @@ def register_user(
     Returns:
         UserResponse: The registered user's data.
     """
-    jwt_manager = JWTManager()
 
     # Check if the email is already registered
     email_user = user_service.get_user_by_email(db, body.email)
@@ -98,7 +98,7 @@ def login(
     body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
     user_service: UserService = Depends(UserService),
-    jwt_manager: JWTManager = Depends(JWTManager),
+    jwt_manager: JWTManager = Depends(lambda: jwt_manager),
 ):
     """
     Authenticate a user and generate an access token.
@@ -149,7 +149,7 @@ def request_password_reset(
     request: Request,
     db: Session = Depends(get_db),
     user_service: UserService = Depends(UserService),
-    jwt_manager: JWTManager = Depends(JWTManager),
+    jwt_manager: JWTManager = Depends(lambda: jwt_manager),
 ):
     """
     Handle a password reset request.
@@ -187,7 +187,7 @@ def reset_password(
     new_password: str = Form(...),
     db: Session = Depends(get_db),
     user_service: UserService = Depends(UserService),
-    jwt_manager: JWTManager = Depends(JWTManager),
+    jwt_manager: JWTManager = Depends(lambda: jwt_manager),
 ):
     """
     Reset the user's password.

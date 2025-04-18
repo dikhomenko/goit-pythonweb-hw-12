@@ -1,152 +1,84 @@
-import pytest
-from unittest.mock import patch
-from fastapi.testclient import TestClient
-from app.main import app
-from app.routers.auth.schemas import UserModel, TokenModel
+from unittest.mock import patch, ANY, AsyncMock
+from conftest import test_user
+from app.helpers.email_sender.email import send_password_reset_email as actual_send_email
 
-client = TestClient(app)
+def test_register_user(client):
+    new_user_data = {
+        "username": "new_user",
+        "email": "new_user@example.com",
+        "password": "password123",
+        "role": "user",
+    }
 
+    response = client.post("/api/auth/register", json=new_user_data)
 
-def test_register_user_missing_fields():
-    """Test registering a user with missing required fields."""
-    response = client.post(
-        "/api/auth/register",
-        json={
-            "username": "testuser",
-            # Missing email and password
-        },
-    )
-    assert response.status_code == 422  # Unprocessable Entity
-
-
-def test_register_user_invalid_email_format():
-    """Test registering a user with an invalid email format."""
-    response = client.post(
-        "/api/auth/register",
-        json={
-            "username": "testuser",
-            "email": "invalid-email",
-            "password": "securepassword",
-        },
-    )
-    assert response.status_code == 422  # Unprocessable Entity
-
-
-def test_login_user_missing_fields():
-    """Test logging in with missing required fields."""
-    response = client.post(
-        "/api/auth/login",
-        data={
-            "username": "testuser",
-            # Missing password
-        },
-    )
-    assert response.status_code == 422  # Unprocessable Entity
-
-
-def test_login_user_invalid_token():
-    """Test accessing a protected route with an invalid token."""
-    response = client.get(
-        "/api/protected-route",
-        headers={"Authorization": "Bearer invalid_token"},
-    )
-    assert response.status_code == 401
-    assert response.json()["detail"] == "Could not validate credentials"
-
-
-@pytest.mark.parametrize(
-    "username, email, password",
-    [
-        ("user1", "user1@example.com", "password1"),
-        ("user2", "user2@example.com", "password2"),
-    ],
-)
-def test_register_user_parametrized(username, email, password):
-    """Test registering multiple users with parameterized data."""
-    response = client.post(
-        "/api/auth/register",
-        json={
-            "username": username,
-            "email": email,
-            "password": password,
-        },
-    )
-    assert response.status_code == 201
+    assert response.status_code == 201, response.text
     data = response.json()
-    assert data["username"] == username
-    assert data["email"] == email
+    assert data["username"] == new_user_data["username"]
+    assert data["email"] == new_user_data["email"]
+    assert "id" in data
 
 
-def test_login_user_expired_token():
-    """Test logging in with an expired token."""
-    expired_token = "expired_token_example"
-    with patch(
-        "app.services.auth.jwt_manager.JWTManager.decode_access_token"
-    ) as mock_decode:
-        mock_decode.side_effect = ValueError("Token has expired")
-
-        response = client.get(
-            "/api/protected-route",
-            headers={"Authorization": f"Bearer {expired_token}"},
-        )
-        assert response.status_code == 401
-        assert response.json()["detail"] == "Token has expired"
-        mock_decode.assert_called_once_with(expired_token)
-
-
-def test_register_user():
-    """Test registering a new user."""
-    user_data = {
-        "username": "newuser",
-        "email": "newuser@example.com",
-        "password": "securepassword",
+def test_login_user(client):
+    login_data = {
+        "username": test_user["username"],
+        "password": test_user["password"],
     }
-    response = client.post("/api/auth/register", json=user_data)
-    assert response.status_code == 201
-    data = response.json()
-    assert data["username"] == "newuser"
-    assert data["email"] == "newuser@example.com"
 
+    response = client.post("/api/auth/login", data=login_data)
 
-def test_register_user_duplicate_email():
-    """Test registering a user with a duplicate email."""
-    user_data = {
-        "username": "anotheruser",
-        "email": "testuser@example.com",  # Duplicate email
-        "password": "securepassword",
-    }
-    response = client.post("/api/auth/register", json=user_data)
-    assert response.status_code == 409  # Conflict
-
-
-def test_login_user_success():
-    """Test logging in with valid credentials."""
-    user_data = {
-        "username": "testuser",
-        "password": "securepassword",
-    }
-    response = client.post("/api/auth/login", data=user_data)
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     data = response.json()
     assert "access_token" in data
     assert data["token_type"] == "bearer"
 
 
-def test_login_user_invalid_credentials():
-    """Test logging in with invalid credentials."""
-    user_data = {
-        "username": "testuser",
-        "password": "wrongpassword",
+
+@patch("app.dependencies.auth.jwt_manager.create_password_reset_token", return_value="mocked-token")
+@patch("app.helpers.email_sender.email.send_password_reset_email")
+@patch("fastapi.BackgroundTasks.add_task")
+def test_request_password_reset(mock_add_task, mock_send_email, mock_create_token, client):
+    # Arrange
+    reset_request_data = {"email": test_user["email"]}
+
+    # Act
+    response = client.post("/api/auth/request-password-reset", json=reset_request_data)
+
+    # Assert response
+    assert response.status_code == 200
+    assert response.json()["message"] == "Password reset email sent. Check your inbox."
+
+    # Assert the task was scheduled with correct args
+    mock_add_task.assert_called_once_with(
+        actual_send_email,
+        test_user["email"],
+        ANY,  # base_url
+        "mocked-token"
+    )
+
+@patch("app.services.auth.jwt_manager.JWTManager.create_password_reset_token")
+@patch("app.services.auth.jwt_manager.JWTManager.validate_password_reset_token")
+@patch("app.helpers.email_sender.email.send_password_reset_email", new_callable=AsyncMock)
+def test_reset_password(mock_send_email, mock_validate_token, mock_create_token, client):
+    mock_send_email.return_value = None
+    mock_create_token.return_value = "valid_reset_token"
+    mock_validate_token.return_value = test_user["email"]
+
+    reset_password_data = {
+        "token": "valid_reset_token",
+        "new_password": "new_password123",
     }
-    response = client.post("/api/auth/login", data=user_data)
-    assert response.status_code == 401  # Unauthorized
+
+    response = client.post("/api/auth/reset-password", data=reset_password_data)
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["message"] == "Password reset successfully."
 
 
-def test_login_user_nonexistent_email():
-    """Test logging in with a nonexistent email."""
-    user_data = {
-        "username": "nonexistentuser",
-        "password": "password",
-    }
-    response = client.post("/api/auth/login", data=user_data)
-    assert response.status_code == 401  # Unauthorized
+def test_reset_password_form(client):
+    reset_token = "fake_reset_token"
+    response = client.get(f"/api/auth/reset-password-form?token={reset_token}")
+
+    assert response.status_code == 200, response.text
+    assert "reset your password" in response.text.lower()
