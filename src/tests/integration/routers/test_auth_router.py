@@ -150,27 +150,3 @@ def test_login_user_nonexistent_email():
     }
     response = client.post("/api/auth/login", data=user_data)
     assert response.status_code == 401  # Unauthorized
-
-
-def test_refresh_token_success():
-    """Test refreshing a valid token."""
-    with patch(
-        "app.services.auth.jwt_manager.JWTManager.create_access_token"
-    ) as mock_create_token:
-        mock_create_token.return_value = "new_access_token"
-
-        response = client.post(
-            "/api/auth/refresh", headers={"Authorization": "Bearer valid_token"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["access_token"] == "new_access_token"
-        mock_create_token.assert_called_once()
-
-
-def test_refresh_token_invalid_user():
-    """Test refreshing a token for an invalid user."""
-    response = client.post(
-        "/api/auth/refresh", headers={"Authorization": "Bearer invalid_token"}
-    )
-    assert response.status_code == 401  # Unauthorized

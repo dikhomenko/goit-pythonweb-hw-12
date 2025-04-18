@@ -55,3 +55,14 @@ alembic upgrade head
 
 from src >> .\venv\Scripts\activate
 uvicorn app.main:app --reload // or we could set reload=true
+
+# Re-set password
+
+# Run tests
+
+cd src
+
+.\venv\Scripts\activate
+
+pytest -v tests/integration/routers/test_contacts_router.py
+pytest -v tests/integration/routers/test_contacts_router.py::test_create_contact --pdb

@@ -21,6 +21,7 @@ from app.settings import settings
 from app.routers.users.schemas import RequestEmail, EmailSchema
 from app.helpers.email_sender.email import send_email
 from app.services.auth.jwt_manager import JWTManager
+from app.dependencies.auth import jwt_manager
 from db.models.user import User
 
 
@@ -39,7 +40,7 @@ router = APIRouter(
 @limiter.limit("5/minute")
 def me(
     request: Request,
-    current_user: schemas.UserResponse = Depends(JWTManager().get_current_user),
+    current_user: schemas.UserResponse = Depends(jwt_manager.get_current_user),
 ):
     """
     Retrieve the current authenticated user's details.
@@ -59,7 +60,7 @@ def confirmed_email(
     token: str,
     db: Session = Depends(get_db),
     user_service: UserService = Depends(UserService),
-    jwt_manager: JWTManager = Depends(JWTManager),
+    jwt_manager: JWTManager = Depends(lambda: jwt_manager),
 ):
     """
     Confirm a user's email using a token.
@@ -109,7 +110,6 @@ def request_email(
     Returns:
         dict: A success message indicating the confirmation email was sent.
     """
-    jwt_manager = JWTManager()
     user = user_service.get_user_by_email(db, body.email)
 
     if user.confirmed:
@@ -127,7 +127,7 @@ def update_avatar_user(
     db: Session = Depends(get_db),
     upload_service: UploadFileService = Depends(UploadFileService),
     user_service: UserService = Depends(UserService),
-    current_user: User = Depends(JWTManager().get_current_admin_user),
+    current_user: User = Depends(jwt_manager.get_current_admin_user),
     # current_user: User = Depends(get_current_admin_user)
 ):
     """
