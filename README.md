@@ -58,12 +58,32 @@ uvicorn app.main:app --reload // or we could set reload=true
 
 # Re-set password
 
+/request-password-reset and follow the linf from the email
+submit reset_password_form.html
+make actual /reset-password
+
 # Run tests
 
 cd src
 
 .\venv\Scripts\activate
 
+## for integration set of tests Redis is expected to be spun up
+
 pytest -v tests/integration/routers/test_users_router.py
 pytest -v tests/integration/routers/test_contacts_router.py
-pytest -v tests/integration/routers/test_contacts_router.py::test_create_contact --pdb
+pytest -v tests/integration/routers/test_auth_router.py
+
+## for unit tests Redis is mocked
+
+pytest -v tests/unit/services/test_user_service.py
+pytest -v tests/unit/services/test_contact_service.py
+pytest -v tests/unit/services/test_jwt_manager.py
+
+pytest -v tests/unit/repositories/test_contacts_repository.py
+pytest -v tests/unit/repositories/test_users_repository.py
+
+pytest --cache-clear
+
+pytest --cov=src tests/ --cov-report=html
+pytest --cov=src tests/ --cov-report=term-missing

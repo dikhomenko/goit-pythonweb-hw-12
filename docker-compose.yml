@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:13
-    container_name: postgres_hw10
+    container_name: postgres_hw12
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fastapi_hw10
+    container_name: fastapi_hw12
     command: ["poetry", "run", "uvicorn", "src.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -38,3 +38,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

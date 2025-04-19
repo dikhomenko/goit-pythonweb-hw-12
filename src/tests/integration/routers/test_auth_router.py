@@ -82,3 +82,50 @@ def test_reset_password_form(client):
 
     assert response.status_code == 200, response.text
     assert "reset your password" in response.text.lower()
+
+
+# MORE TESTS
+
+def test_register_user_invalid_data(client):
+    # Arrange
+    invalid_user_data = {
+        "username": "",  # Invalid username
+        "email": "invalid_email",  # Invalid email format
+        "password": "short",  # Password too short
+        "role": "user",
+    }
+
+    # Act
+    response = client.post("/api/auth/register", json=invalid_user_data)
+
+    # Assert
+    assert response.status_code == 422, response.text
+    assert "detail" in response.json()
+
+def test_login_user_missing_fields(client):
+    # Arrange
+    incomplete_login_data = {
+        "username": test_user["username"],
+        # Missing password
+    }
+
+    # Act
+    response = client.post("/api/auth/login", data=incomplete_login_data)
+
+    # Assert
+    assert response.status_code == 422, response.text
+    assert "detail" in response.json()
+
+
+def test_request_password_reset_missing_email(client):
+    # Arrange
+    reset_request_data = {}  # Missing email field
+
+    # Act
+    response = client.post("/api/auth/request-password-reset", json=reset_request_data)
+
+    # Assert
+    assert response.status_code == 422, response.text
+    assert "detail" in response.json()
+
+

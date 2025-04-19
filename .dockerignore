@@ -1,0 +1,27 @@
+# .dockerignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.env
+*.venv
+venv
+.env
+.git
+.gitignore
+.DS_Store
+.vscode
+.idea
+storage/data.json
+
+# Ignore tests and coverage reports
+tests
+tests/*
+tests/**/*
+*.cover
+*.coverage
+htmlcov
+*.lcov
